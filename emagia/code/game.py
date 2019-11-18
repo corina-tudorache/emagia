@@ -4,15 +4,49 @@ import random
 class Skill(object):
 	
 	def __init__(self, name, chance):
-		self.name = name
-		self.chance = chance
+		self.__name = name
+		self._chance = chance
+
+	@property
+	def name(self):
+		return self.__name
+
+	@property
+	def chance(self):
+		return self._chance
+
+	@chance.setter
+	def chance(self, chance):
+		self._chance = chance
+
 
 class Property(object):
 
 	def __init__(self, name, minimum, maximum):
-		self.name = name
+		self.__name = name
+		self._min = minimum
+		self._max = maximum
+
+	@property
+	def name(self):
+		return self.__name
+
+	@property
+	def min(self):
+		return self._min
+
+	@min.setter
+	def min(self, minimum):
 		self.min = minimum
+
+	@property
+	def max(self):
+		return self._max
+
+	@max.setter
+	def max(self, maximum):
 		self.max = maximum
+
 
 class Player(object):
 	
@@ -25,7 +59,19 @@ class Player(object):
 		self._speed = 0
 		self._luck = 0
 		self.properties = []
-	
+
+	def initialize(self): #properties is a list of Propery objects  
+		if len(self.properties) != 5:
+			print "Incomplete properties"
+			return
+		self.health = random.randint(self.properties[0].min, self.properties[0].max+1);
+		self.strength = random.randint(self.properties[1].min, self.properties[1].max+1);
+		self.defence = random.randint(self.properties[2].min, self.properties[2].max+1);
+		self.speed = random.randint(self.properties[3].min, self.properties[3].max+1);
+		self.luck = random.randint(self.properties[4].min, self.properties[4].max+1);
+		
+		self.print_properties()
+
 	def print_properties(self):
 		print self.name, " properties:"
 		print "health:", self.health
@@ -35,18 +81,8 @@ class Player(object):
 		print "luck", self.luck
 
 	def print_update(self):
-		print self.name, " new Health ", self.health
-		print self.name, " new Luck ", self.luck
-
-
-	def initialize(self): #properties is a list of Propery objects  
-		self.health = random.randint(self.properties[0].min, self.properties[0].max+1);
-		self.strength = random.randint(self.properties[1].min, self.properties[1].max+1);
-		self.defence = random.randint(self.properties[2].min, self.properties[2].max+1);
-		self.speed = random.randint(self.properties[3].min, self.properties[3].max+1);
-		self.luck = random.randint(self.properties[4].min, self.properties[4].max+1);
-		
-		self.print_properties()
+		print self.name, ": New health ", self.health
+		print self.name, " New luck ", self.luck
 	
 	@property
 	def health(self):
@@ -174,50 +210,49 @@ class Beast(Player):
 
 
 class Battle(object):
-	#turn 0-1
 	def __init__(self):
 		self.rounds = 0
 		self.winner = False
 		self.turn = -1
 		self.attacker = None
 		self.defender = None
-		self.orderus = Hero("Orderus")
+		self.hero = Hero("Orderus")
 		self.beast = Beast("Beast")
 
-	def players_luck(self):
-		self.orderus.get_luck()
+	def get_players_luck(self):
+		self.hero.get_luck()
 		self.beast.get_luck()
 
 	def fight(self):
 		damage = self.attacker.strength - self.defender.defence
-		if self.defender == self.orderus and self.orderus.has_shield():
+		if self.defender == self.hero and self.hero.has_shield():
 			damage = damage / 2	
-			self.orderus.shield = False
+			self.hero.shield = False
 			print "Orderus used his shield"
 			
 		self.defender.damage = damage
 		self.defender.health -= damage
 
 		print "Damage: ", damage
-		self.rounds += 1
 		
 	def whos_turn(self):
 		if self.rounds == 0:
-			if self.orderus.speed > self.beast.speed:
+			if self.hero.speed > self.beast.speed:
 				self.turn = 0
-			elif self.orderus.speed == self.beast.speed:
-				if self.orderus.luck > self.beast.luck:
+			elif self.hero.speed == self.beast.speed:
+				if self.hero.luck > self.beast.luck:
 					self.turn = 0
-				elif self.orderus.luck == self.beast.luck:
+				elif self.hero.luck == self.beast.luck:
 					#find a rule
-					self.turn = random.randint(0,1)
+					self.turn = random.getrandbits(1)
 				else:
 					self.turn = 1
 			else:
 				self.turn = 1
-		#elif self.turn == 0 and self.orderus.luck > self.beast.luck:
+		# not sure what gets lucky means
+		#elif self.turn == 0 and self.hero.luck > self.beast.luck:
 		#	self.turn = 0
-		#elif self.turn == 1 and self.beast.luck > self.orderus.luck:
+		#elif self.turn == 1 and self.beast.luck > self.hero.luck:
 		#	self.turn = 1	
 		elif self.turn == 0:		
 			self.turn = 1
@@ -226,40 +261,43 @@ class Battle(object):
 				
 
 	def attack(self):
-		if self.attacker == self.orderus and self.orderus.has_strike():
+		if self.attacker == self.hero and self.hero.has_strike():
 			self.defender.damage = self.attacker.strength - self.defender.defence
 			self.defender.health -= self.defender.damage
-			self.orderus.strike = False
-			print ("Orderus used his strike")
+			self.hero.strike = False
+			print ("Hero used his strike")
+			self.rounds -= 1
 		else:
 			self.whos_turn()
 			if self.turn == 0:
-				self.attacker = self.orderus
+				self.attacker = self.hero
 				self.defender = self.beast
 			else:
 				self.attacker = self.beast
-				self.defender = self.orderus
+				self.defender = self.hero
 			
 			print "Attacker:", self.attacker.name
 			print "Defender:", self.defender.name	
 				
-			self.fight()			 
+			self.fight()
+						 
 
 	def play(self):
-		self.orderus.initialize()
+		self.hero.initialize()
 		self.beast.initialize()
 
 		while (self.rounds < 20) or not self.winner:
-			self.players_luck()
+			self.get_players_luck()
 			self.attack()
-			self.orderus.print_update()
+			self.rounds += 1
+			self.hero.print_update()
 			self.beast.print_update()
-			if self.orderus.health <= 0 or self.beast.health <= 0:
+			if self.hero.health <= 0 or self.beast.health <= 0:
 				self.winner = True
 				break
 
 		if self.winner:
-			if self.orderus.health <= 0:
+			if self.hero.health <= 0:
 				print "Beasts won"
 			else:
 				print "Hero won"
